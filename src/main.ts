@@ -1,4 +1,4 @@
-import { App, BasesView, Editor, HoverParent, HoverPopover, Keymap, MarkdownView, Modal, Notice, parsePropertyId, Plugin, QueryController } from 'obsidian';
+import { App, BasesView, Editor, HoverParent, HoverPopover, Keymap, MarkdownView, Modal, Notice, parsePropertyId, Plugin, QueryController, Vault } from 'obsidian';
 import { DEFAULT_SETTINGS, MyPluginSettings, SampleSettingTab } from "./settings";
 
 export const ExampleViewType = 'example-view';
@@ -26,10 +26,22 @@ export default class MyPlugin extends Plugin {
 				// ...
 			]),
 		});
+
+		// TODO: Add icon on ribbon to generate/update needed maps of contents
+		// this.addRibbonIcon('dice','greet',()=>{GetAllDirectories(this.app.vault)});
+
+		// TODO: re-generate maps of contents on load (only bases)
 	}
 
 	onunload() {
 	}
+}
+
+function GetAllDirectories(files:Vault) {
+	// TODO Gather all folders and mirror structure on map of contents root defined in options
+	// TODO define options to declare root for map of contents
+	console.log(files.getAllFolders());
+	//files.create("")
 }
 
 export class MyBasesView extends BasesView implements HoverParent {
@@ -45,6 +57,8 @@ export class MyBasesView extends BasesView implements HoverParent {
 	}
 
 	public onDataUpdated(): void {
+		// TODO handle groups so that they are their own sections
+		// TODO display properties as tables?
 		const { app } = this;
 		
 
@@ -63,13 +77,12 @@ export class MyBasesView extends BasesView implements HoverParent {
 		// If it's appropriate for your view type, use the grouped form.
 		for (const group of this.data.groupedData) {
 			const groupEl = this.containerEl.createDiv('bases-list-group');
-			const groupListEl = groupEl.createEl('ul', 'bases-list-group-list');
+			const groupListEl = groupEl.createEl('li', 'bases-list-group-list');
 
 			// Each entry in the group is a separate file in the vault matching
 			// the Base filters. For list view, each entry is a separate line.
 			for (const entry of group.entries) {
-				if(entry.file.parent != this.currentParent) continue;
-				
+
 				groupListEl.createEl('li', 'bases-list-entry', (el) => {
 					let firstProp = true;
 					for (const propertyName of order) {
