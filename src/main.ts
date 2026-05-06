@@ -1,146 +1,159 @@
-import { App, BasesView, Editor, HoverParent, HoverPopover, Keymap, MarkdownView, Modal, Notice, parsePropertyId, Plugin, QueryController, Vault } from 'obsidian';
-import { DEFAULT_SETTINGS, MyPluginSettings, SampleSettingTab } from "./settings";
+import { ListedFiles, Plugin, TAbstractFile, TFile, TFolder, Vault } from "obsidian";
 
-export const ExampleViewType = 'example-view';
+import { DEFAULT_SETTINGS, MapOfConceptGeneratorPluginSettings, MapOfConceptGeneratorPluginSettingTab } from "./settings";
 
-export default class MyPlugin extends Plugin {
-	async onload() {
-		// Tell Obsidian about the new view type that this plugin provides.
-		this.registerBasesView(ExampleViewType, {
-			name: 'Example',
-			icon: 'lucide-graduation-cap',
-			factory: (controller, containerEl) => {
-				return new MyBasesView(controller, containerEl);
-			},
-			options: () => ([
-				{
-					// The type of option. 'text' is a text input.
-					type: 'text',
-					// The name displayed in the settings menu.
-					displayName: 'Property separator',
-					// The value saved to the view settings.
-					key: 'separator',
-					// The default value for this option.
-					default: ' - ',
-				},
-				// ...
-			]),
-		});
+export default class MapOfConceptGeneratorPlugin extends Plugin {
+  settings: MapOfConceptGeneratorPluginSettings = {
+    MapOfConceptDirectory: "",
+    MapOfConceptTemplate: "",
+    ExcludeAllBases: false,
+    ExcludeSelf: false,
+    DeleteEmptyFoldersOnGeneration: false,
+    GenerateOnStartup: false
+  };
 
-		// TODO: Add icon on ribbon to generate/update needed maps of contents
-		// this.addRibbonIcon('dice','greet',()=>{GetAllDirectories(this.app.vault)});
+  async onload() {
+    await this.loadSettings();
 
-		// TODO: re-generate maps of contents on load (only bases)
-	}
+    this.addRibbonIcon('dice', 'foo', async () => await this.GenerateMapsOfConcept());
+    this.addSettingTab(new MapOfConceptGeneratorPluginSettingTab(this.app, this));
 
-	onunload() {
-	}
+    if (this.settings.GenerateOnStartup) {
+      await this.GenerateMapsOfConcept();
+    }
+  }
+
+  onunload() {
+  }
+
+  async loadSettings() {
+    this.settings = Object.assign({}, DEFAULT_SETTINGS, await this.loadData() as Partial<MapOfConceptGeneratorPluginSettings>);
+  }
+
+  async saveSettings() {
+    await this.saveData(this.settings);
+  }
+
+  async GenerateMapsOfConcept() {
+    await GenerateMapsOfConcept(this.app.vault, this.settings)
+  }
 }
 
-function GetAllDirectories(files:Vault) {
-	// TODO Gather all folders and mirror structure on map of contents root defined in options
-	// TODO define options to declare root for map of contents
-	console.log(files.getAllFolders());
-	//files.create("")
+async function GenerateMapsOfConcept(vault: Vault, settings: MapOfConceptGeneratorPluginSettings) {
+  let pendingFolders = [vault.getFolderByPath(settings.MapOfConceptDirectory)]
+
+  let MissingFolders: string[] = vault.getAllFolders().filter(val => !val.path.startsWith(settings.MapOfConceptDirectory)).map(val => val.path);
+  let GeneratedFolders: string[] = [];
+  let ExtraFolders: string[] = [];
+
+  // Iterate through any pending folder
+  while (pendingFolders.length > 0) {
+    let folder = pendingFolders.pop();
+    if (folder == null) continue;
+
+    for (let child of folder.children) {
+      if (child instanceof TFolder) {
+        pendingFolders.push(child)
+        continue
+      }
+
+      if (!(child instanceof TFile)) continue;
+      if (child.extension != "base") continue;
+
+      let childPath = child.path.slice(settings.MapOfConceptDirectory.length + 1, -5);
+      let indexOfChild = MissingFolders.indexOf(childPath);
+
+      if (indexOfChild == -1) {
+        ExtraFolders.push(child.path);
+      } else {
+        GeneratedFolders.push(childPath);
+        MissingFolders.remove(childPath)
+      }
+    }
+
+  }
+
+
+  // Delete any bases that do not match to folders anymore
+  for (let extra of ExtraFolders) {
+    let abstractFile = vault.getAbstractFileByPath(extra);
+    if (abstractFile != null) {
+      await vault.delete(abstractFile);
+    }
+  }
+
+
+
+
+  // Generate the missing bases
+  let replaceText = "";
+
+  // I'm sure there's some "NOR" magic I could do here but this is hard enough to read as is
+  if (settings.ExcludeAllBases && settings.ExcludeSelf) {
+    replaceText = 'file.ext != "base"';
+  } else if (settings.ExcludeAllBases && !settings.ExcludeSelf) {
+    replaceText = 'file.ext != "base" || file == this.file';
+  } else if (!settings.ExcludeAllBases && settings.ExcludeSelf) {
+    replaceText = ' file != this.file';
+  } else if (!settings.ExcludeAllBases && !settings.ExcludeSelf) {
+    replaceText = 'true';
+  }
+
+  // Replace settings
+  let baseTemplate = settings.MapOfConceptTemplate.replace("$1", replaceText);
+
+  for (let folder of MissingFolders) {
+    let splitFolderbase = folder.split('/');
+    splitFolderbase.pop();
+    let newFolder = [settings.MapOfConceptDirectory, ...splitFolderbase].join('/');
+
+    if (vault.getAbstractFileByPath(newFolder) == null) {
+      await vault.createFolder(newFolder);
+    }
+
+    let basePath = settings.MapOfConceptDirectory + '/' + folder + '.base';
+    if (vault.getAbstractFileByPath(basePath) == null) {
+      await vault.create(basePath, baseTemplate);
+    }
+  }
+
+  let pendingUpdates: TAbstractFile[] = vault.getFiles()
+    .filter(val => val.path.startsWith(settings.MapOfConceptDirectory))
+    .filter(val => val.extension == "base");
+
+  for (let file of pendingUpdates) {
+    await vault.modify(file as TFile, baseTemplate);
+  }
+
+  // Delete empty folders recursively
+  if (settings.DeleteEmptyFoldersOnGeneration) {
+    await DeleteEmptyFoldersRecursively(vault, settings.MapOfConceptDirectory);
+  }
 }
 
-export class MyBasesView extends BasesView implements HoverParent {
-	readonly type = ExampleViewType;
-	private containerEl: HTMLElement;
-	private currentParent: any;
-	hoverPopover: HoverPopover | null;
+async function DeleteEmptyFoldersRecursively(vault: Vault, root: string | null): Promise<boolean> {
+  if (root == null) return true;
 
-	constructor(controller: QueryController, parentEl: HTMLElement) {
-		super(controller);
-		this.containerEl = parentEl.createDiv('bases-example-view-container');
-		this.currentParent = this.queryController.currentFile.parent;
-	}
+  let abstractFile = vault.getAbstractFileByPath(root);
+  if (abstractFile instanceof TFile) return false;
+  if (!(abstractFile instanceof TFolder)) return false;
+  let canDelete: boolean = true;
 
-	public onDataUpdated(): void {
-		// TODO handle groups so that they are their own sections
-		// TODO display properties as tables?
-		const { app } = this;
-		
+  let childrenPaths = abstractFile.children.map(val => val.path);
 
-		// Retrieve the user configured order set in the Properties menu.
-		const order = this.config.getOrder()
+  for (let child of childrenPaths) {
+    let result = await DeleteEmptyFoldersRecursively(vault, child.path);
+    canDelete = result && canDelete;
+  }
 
-		// Clear entries created by previous iterations. Remember, you should
-		// instead attempt element reuse when possible.
-		this.containerEl.empty();
 
-		// The property separator configured by the ViewOptions above can be
-		// retrieved from the view config. Be sure to set a default value.
-		const propertySeparator = String(this.config.get('separator')) || ' - ';
+  console.log("Folder ",abstractFile.path);
+  console.log(abstractFile.children);
 
-		// this.data contains both grouped and ungrouped versions of the data.
-		// If it's appropriate for your view type, use the grouped form.
-		for (const group of this.data.groupedData) {
-			const groupEl = this.containerEl.createDiv('bases-list-group');
-			const groupListEl = groupEl.createEl('li', 'bases-list-group-list');
+  if (canDelete) {
+    console.log("deleting ", abstractFile.path);
+    await vault.delete(abstractFile);
+  }
 
-			// Each entry in the group is a separate file in the vault matching
-			// the Base filters. For list view, each entry is a separate line.
-			for (const entry of group.entries) {
-
-				groupListEl.createEl('li', 'bases-list-entry', (el) => {
-					let firstProp = true;
-					for (const propertyName of order) {
-						// Properties in the order can be parsed to determine what type
-						// they are: formula, note, or file.
-						const { type, name } = parsePropertyId(propertyName);
-
-						// `entry.getValue` returns the evaluated result of the property
-						// in the context of this entry.
-						const value = entry.getValue(propertyName);
-
-						// Skip rendering properties which have an empty value.
-						// The list items for each file may have differing length.
-						if (!value?.isTruthy()) continue;
-
-						if (!firstProp) {
-							el.createSpan({
-								cls: 'bases-list-separator',
-								text: propertySeparator
-							});
-						}
-						firstProp = false;
-
-						// If the `file.name` property is included in the order, render
-						// it specially so that it links to that file.
-						if (name === 'name' && type === 'file') {
-							const fileName = String(entry.file.name);
-							const linkEl = el.createEl('a', { text: fileName });
-							linkEl.onClickEvent((evt) => {
-								if (evt.button !== 0 && evt.button !== 1) return;
-								evt.preventDefault();
-								const path = entry.file.path;
-								const modEvent = Keymap.isModEvent(evt);
-								void app.workspace.openLinkText(path, '', modEvent);
-							});
-
-							linkEl.addEventListener('mouseover', (evt) => {
-								app.workspace.trigger('hover-link', {
-									event: evt,
-									source: 'bases',
-									hoverParent: this,
-									targetEl: linkEl,
-									linktext: entry.file.path,
-								});
-							});
-						}
-						// For all other properties, just display the value as text.
-						// In your view you may also choose to use the `Value.renderTo`
-						// API to better support photos, links, icons, etc.
-						else {
-							el.createSpan({
-								cls: 'bases-list-entry-property',
-								text: value.toString()
-							});
-						}
-					}
-				});
-			}
-		}
-	}
+  return canDelete;
 }
