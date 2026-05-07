@@ -3,7 +3,7 @@
 	"name": "Map of Content Generator",
 	"version": "1.0.1",
 	"minAppVersion": "0.15.0",
-	"description": "Generates a map of content for your vault based on folder structure",
+	"description": "Generates a map of content for your vault based on folder structure.",
 	"author": "danybeam",
 	"authorUrl": "https://github.com/danybeam/MapOfContentGenerator",
 	"fundingUrl": "",
