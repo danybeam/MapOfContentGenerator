@@ -142,16 +142,11 @@ async function DeleteEmptyFoldersRecursively(vault: Vault, root: string | null):
   let childrenPaths = abstractFile.children.map(val => val.path);
 
   for (let child of childrenPaths) {
-    let result = await DeleteEmptyFoldersRecursively(vault, child.path);
+    let result = await DeleteEmptyFoldersRecursively(vault, child);
     canDelete = result && canDelete;
   }
 
-
-  console.log("Folder ",abstractFile.path);
-  console.log(abstractFile.children);
-
   if (canDelete) {
-    console.log("deleting ", abstractFile.path);
     await vault.delete(abstractFile);
   }
 
