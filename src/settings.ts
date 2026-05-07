@@ -1,6 +1,6 @@
 import { App, PluginSettingTab, Setting } from "obsidian";
 
-import MapOfContentGeneratorPlugin from "./main";
+import MapOfContentGeneratorPlugin from "./main.ts";
 
 export interface MapOfContentGeneratorPluginSettings {
   AddRibbonButton: boolean;

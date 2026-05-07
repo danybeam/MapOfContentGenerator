@@ -1,6 +1,6 @@
 import { Plugin, TAbstractFile, TFile, TFolder, Vault } from "obsidian";
 
-import { DEFAULT_SETTINGS, MapOfContentGeneratorPluginSettings, MapOfContentGeneratorPluginSettingTab } from "./settings";
+import { DEFAULT_SETTINGS, MapOfContentGeneratorPluginSettings, MapOfContentGeneratorPluginSettingTab } from "./settings.ts";
 
 export default class MapOfContentGeneratorPlugin extends Plugin {
   settings: MapOfContentGeneratorPluginSettings = {
