@@ -1,11 +1,11 @@
 import { App, PluginSettingTab, Setting } from "obsidian";
 
-import MapOfConceptGeneratorPlugin from "./main";
+import MapOfContentGeneratorPlugin from "./main";
 
-export interface MapOfConceptGeneratorPluginSettings {
+export interface MapOfContentGeneratorPluginSettings {
   AddRibbonButton: boolean;
-  MapOfConceptDirectory: string;
-  MapOfConceptTemplate: string;
+  MapOfContentDirectory: string;
+  MapOfContentTemplate: string;
   RootMapTemplate: string;
   ExcludeAllBases: boolean;
   ExcludeSelf: boolean;
@@ -13,15 +13,15 @@ export interface MapOfConceptGeneratorPluginSettings {
   GenerateOnStartup: boolean;
   UpdateTemplatesOnGeneration: boolean;
   IgnoreExtrasDuringUpdate: boolean;
-  GenerateRootMapOfConcept: boolean;
-  RootMapOfConceptName: string;
+  GenerateRootMapOfContent: boolean;
+  RootMapOfContentName: string;
   RemoveExtraBases: boolean;
 }
 
-export const DEFAULT_SETTINGS: MapOfConceptGeneratorPluginSettings = {
+export const DEFAULT_SETTINGS: MapOfContentGeneratorPluginSettings = {
   AddRibbonButton: true,
-  MapOfConceptDirectory: '',
-  MapOfConceptTemplate: `views:
+  MapOfContentDirectory: '',
+  MapOfContentTemplate: `views:
   - type: table
     name: Table
     filters:
@@ -61,15 +61,15 @@ export const DEFAULT_SETTINGS: MapOfConceptGeneratorPluginSettings = {
   GenerateOnStartup: true,
   UpdateTemplatesOnGeneration: true,
   IgnoreExtrasDuringUpdate: true,
-  GenerateRootMapOfConcept: true,
-  RootMapOfConceptName: "root",
+  GenerateRootMapOfContent: true,
+  RootMapOfContentName: "root",
   RemoveExtraBases: true
 }
 
-export class MapOfConceptGeneratorPluginSettingTab extends PluginSettingTab {
-  plugin: MapOfConceptGeneratorPlugin;
+export class MapOfContentGeneratorPluginSettingTab extends PluginSettingTab {
+  plugin: MapOfContentGeneratorPlugin;
 
-  constructor(app: App, plugin: MapOfConceptGeneratorPlugin) {
+  constructor(app: App, plugin: MapOfContentGeneratorPlugin) {
     super(app, plugin);
     this.plugin = plugin;
   }
@@ -92,33 +92,33 @@ export class MapOfConceptGeneratorPluginSettingTab extends PluginSettingTab {
       });
 
     new Setting(containerEl)
-      .setName('Map of Concept base directory')
-      .setDesc('Set directory to generate maps of concept into')
+      .setName('Map of content base directory')
+      .setDesc('Set directory to generate maps of content into')
       .addText(text => text
         .setPlaceholder('Enter the folder to be used as a base')
-        .setValue(this.plugin.settings.MapOfConceptDirectory)
+        .setValue(this.plugin.settings.MapOfContentDirectory)
         .onChange(async (value) => {
-          this.plugin.settings.MapOfConceptDirectory = value;
+          this.plugin.settings.MapOfContentDirectory = value;
           await this.plugin.saveSettings();
         })
 
       );
 
     /*new Setting(containerEl)
-      .setName('Map of Concept template')
-      .setDesc('(WIP please use regular template for now) Set the template for the map of concept')
+      .setName('Map of content template')
+      .setDesc('(WIP please use regular template for now) Set the template for the map of content')
       .addTextArea(text => text
         .setPlaceholder('')
-        .setValue(this.plugin.settings.MapOfConceptTemplate)
+        .setValue(this.plugin.settings.MapOfContentTemplate)
         .onChange(async (value) => {
-          this.plugin.settings.MapOfConceptTemplate = value;
+          this.plugin.settings.MapOfContentTemplate = value;
           await this.plugin.saveSettings();
         })
       );*/
 
     /*new Setting(containerEl)
-      .setName('Root map of concept template')
-      .setDesc('(WIP please use regular template for now) Set the template for the map of concept at root')
+      .setName('Root map of content template')
+      .setDesc('(WIP please use regular template for now) Set the template for the map of content at root')
       .addTextArea(text => text
         .setPlaceholder('')
         .setValue(this.plugin.settings.RootMapTemplate)
@@ -154,7 +154,7 @@ export class MapOfConceptGeneratorPluginSettingTab extends PluginSettingTab {
 
     new Setting(containerEl)
       .setName('Delete empty folders after generation')
-      .setDesc('This only affects folders under the base map of contents folder but as of right now it could delete the map of concept folder itself\nWARNING: THIS CAN AND WILL DELETE YOUR MAP OF CONCEPT FOLDER IF IT IS EMPTY AFTER CLEANING THE EXTRAS')
+      .setDesc('This only affects folders under the base map of contents folder but as of right now it could delete the map of content folder itself\nWARNING: THIS CAN AND WILL DELETE YOUR MAP OF content FOLDER IF IT IS EMPTY AFTER CLEANING THE EXTRAS')
       .addToggle(cb => {
         cb
           .setValue(this.plugin.settings.DeleteEmptyFoldersOnGeneration)
@@ -166,7 +166,7 @@ export class MapOfConceptGeneratorPluginSettingTab extends PluginSettingTab {
 
     new Setting(containerEl)
       .setName('Generate on startup')
-      .setDesc('Whether to generate/update the map of concepts on load')
+      .setDesc('Whether to generate/update the map of contents on load')
       .addToggle(cb => {
         cb
           .setValue(this.plugin.settings.GenerateOnStartup)
@@ -178,7 +178,7 @@ export class MapOfConceptGeneratorPluginSettingTab extends PluginSettingTab {
 
     new Setting(containerEl)
       .setName('Update templates on generation')
-      .setDesc("Whether to update the map of concepts when they're generated\nWARNING: THIS IS A DESTRUCTIVE OPERATION AND IT WILL MODIFY ANY CUSTOM SETTINGS YOU HAVE ON YOUR BASES")
+      .setDesc("Whether to update the map of contents when they're generated\nWARNING: THIS IS A DESTRUCTIVE OPERATION AND IT WILL MODIFY ANY CUSTOM SETTINGS YOU HAVE ON YOUR BASES")
       .addToggle(cb => {
         cb
           .setValue(this.plugin.settings.UpdateTemplatesOnGeneration)
@@ -201,25 +201,25 @@ export class MapOfConceptGeneratorPluginSettingTab extends PluginSettingTab {
       });
 
     new Setting(containerEl)
-      .setName('Generate root Map of Concept')
-      .setDesc("Whether to make a special map of concept that links to the other maps of concepts")
+      .setName('Generate root Map of Content')
+      .setDesc("Whether to make a special map of content that links to the other maps of contents")
       .addToggle(cb => {
         cb
-          .setValue(this.plugin.settings.GenerateRootMapOfConcept)
+          .setValue(this.plugin.settings.GenerateRootMapOfContent)
           .onChange(async (value) => {
-            this.plugin.settings.GenerateRootMapOfConcept = value;
+            this.plugin.settings.GenerateRootMapOfContent = value;
             this.plugin.saveSettings();
           })
       });
 
        new Setting(containerEl)
-      .setName('Root map of concept name')
+      .setName('Root map of content name')
       .setDesc('Name of the file to be used as root (if applicable)')
       .addText(text => text
         .setPlaceholder('root')
-        .setValue(this.plugin.settings.RootMapOfConceptName)
+        .setValue(this.plugin.settings.RootMapOfContentName)
         .onChange(async (value) => {
-          this.plugin.settings.RootMapOfConceptName = value;
+          this.plugin.settings.RootMapOfContentName = value;
           await this.plugin.saveSettings();
         })
 
@@ -227,7 +227,7 @@ export class MapOfConceptGeneratorPluginSettingTab extends PluginSettingTab {
 
     new Setting(containerEl)
       .setName('Remove extra bases')
-      .setDesc("Whether to remove bases in the map of concept folder that do not match to other folders.\nWARNING: THIS IS A DESTRUCTIVE OPERATION.")
+      .setDesc("Whether to remove bases in the map of content folder that do not match to other folders.\nWARNING: THIS IS A DESTRUCTIVE OPERATION.")
       .addToggle(cb => {
         cb
           .setValue(this.plugin.settings.RemoveExtraBases)

@@ -1,90 +1,154 @@
-# Obsidian Sample Plugin
+# Map of Content Generator
 
-This is a sample plugin for Obsidian (https://obsidian.md).
+This is a utility that generates pre-filtered bases on a folder of your choice so that you can use them as maps of content if you use Maps of Content.
+I found myself going through the same motions over and over so I made this to automate and manage that.
 
-This project uses TypeScript to provide type checking and documentation.
-The repo depends on the latest plugin API (obsidian.d.ts) in TypeScript Definition format, which contains TSDoc comments describing what it does.
+## Settings
+### Enable ribbon button
+Description: 
+> Whether to display the ribbon button for manual generation  
 
-This sample plugin demonstrates some of the basic functionality the plugin API can do.
-- Adds a ribbon icon, which shows a Notice when clicked.
-- Adds a command "Open modal (simple)" which opens a Modal.
-- Adds a plugin setting tab to the settings page.
-- Registers a global click event and output 'click' to the console.
-- Registers a global interval which logs 'setInterval' to the console.
+Default value:
+> On
 
-## First time developing plugins?
+Example:  
+![ribbon button example](docs/images/ribbonButton.png)
 
-Quick starting guide for new plugin devs:
+### Map of content directory
 
-- Check if [someone already developed a plugin for what you want](https://obsidian.md/plugins)! There might be an existing plugin similar enough that you can partner up with.
-- Make a copy of this repo as a template with the "Use this template" button (login to GitHub if you don't see it).
-- Clone your repo to a local development folder. For convenience, you can place this folder in your `.obsidian/plugins/your-plugin-name` folder.
-- Install NodeJS, then run `npm i` in the command line under your repo folder.
-- Run `npm run dev` to compile your plugin from `main.ts` to `main.js`.
-- Make changes to `main.ts` (or create new `.ts` files). Those changes should be automatically compiled into `main.js`.
-- Reload Obsidian to load the new version of your plugin.
-- Enable plugin in settings window.
-- For updates to the Obsidian API run `npm update` in the command line under your repo folder.
+Description: 
+> Path of the folder where your maps of content will be stored.
 
-## Releasing new releases
+Default value:
+> empty
 
-- Update your `manifest.json` with your new version number, such as `1.0.1`, and the minimum Obsidian version required for your latest release.
-- Update your `versions.json` file with `"new-plugin-version": "minimum-obsidian-version"` so older versions of Obsidian can download an older version of your plugin that's compatible.
-- Create new GitHub release using your new version number as the "Tag version". Use the exact version number, don't include a prefix `v`. See here for an example: https://github.com/obsidianmd/obsidian-sample-plugin/releases
-- Upload the files `manifest.json`, `main.js`, `styles.css` as binary attachments. Note: The manifest.json file must be in two places, first the root path of your repository and also in the release.
-- Publish the release.
+Notes:
+> Do not add the leading / to the path of the folder
 
-> You can simplify the version bump process by running `npm version patch`, `npm version minor` or `npm version major` after updating `minAppVersion` manually in `manifest.json`.
-> The command will bump version in `manifest.json` and `package.json`, and add the entry for the new version to `versions.json`
+Example:  
+![example of map of content route](docs/images/MapOfContentBaseDirectory.png)
 
-## Adding your plugin to the community plugin list
+### Map of content template
 
-- Check the [plugin guidelines](https://docs.obsidian.md/Plugins/Releasing/Plugin+guidelines).
-- Publish an initial version.
-- Make sure you have a `README.md` file in the root of your repo.
-- Make a pull request at https://github.com/obsidianmd/obsidian-releases to add your plugin.
+> [!caution] 
+> This is temporarily disabled as I figure out how to use the file search API
+> to make it use a file instead of raw text
 
-## How to use
+Description:
+>  The text that will be inserted/updated into the maps of content (except root)
 
-- Clone this repo.
-- Make sure your NodeJS is at least v16 (`node --version`).
-- `npm i` or `yarn` to install dependencies.
-- `npm run dev` to start compilation in watch mode.
+### Root map template
 
-## Manually installing the plugin
+> [!caution] 
+> This is temporarily disabled as I figure out how to use the file search API
+> to make it use a file instead of raw text
 
-- Copy over `main.js`, `styles.css`, `manifest.json` to your vault `VaultFolder/.obsidian/plugins/your-plugin-id/`.
+Description:
+>  The text that will be inserted/updated into the root map of content
 
-## Improve code quality with eslint
-- [ESLint](https://eslint.org/) is a tool that analyzes your code to quickly find problems. You can run ESLint against your plugin to find common bugs and ways to improve your code. 
-- This project already has eslint preconfigured, you can invoke a check by running`npm run lint`
-- Together with a custom eslint [plugin](https://github.com/obsidianmd/eslint-plugin) for Obsidan specific code guidelines.
-- A GitHub action is preconfigured to automatically lint every commit on all branches.
+### Exclude all bases
 
-## Funding URL
+Description:
+> Whether to show other bases in the view
 
-You can include funding URLs where people who use your plugin can financially support it.
+Default value:
+> On
 
-The simple way is to set the `fundingUrl` field to your link in your `manifest.json` file:
+Example on:  
+![exclude all bases example toggle on](docs/images/ExcludeAllBasesOn.png)
+![example table with base not visible](docs/images/ExcludeAllBasesOffTable.png)
 
-```json
-{
-    "fundingUrl": "https://buymeacoffee.com"
-}
-```
+Example off:  
+![exclude all bases example toggle off](docs/images/ExcludeAllBasesOff.png)
+![example table with base visible](docs\images\ExcludeAllBasesOnTable.png)
 
-If you have multiple URLs, you can also do:
+### Exclude self
 
-```json
-{
-    "fundingUrl": {
-        "Buy Me a Coffee": "https://buymeacoffee.com",
-        "GitHub Sponsor": "https://github.com/sponsors",
-        "Patreon": "https://www.patreon.com/"
-    }
-}
-```
+> [!important]
+> This might be removed as it doesn't really apply  
+>
+> This was left undocumented intentionally
 
-## API Documentation
+### Delete empty folders on generation
 
-See https://docs.obsidian.md
+> [!caution]
+> This can and will delete your map of content folder if it contains no files after the generation process.  
+> Make sure you have at least one other folder before starting the generation if this is turned on.  
+> This can also be avoided by having [Generate root map of content](#generate-root-map-of-content) set to on.
+
+Description:
+> Delete any empty sub-folders under the map of content folder after generation
+
+Default value:
+> On
+
+### Generate on startup
+
+> [!warning]
+> The processing time grows the more folders and maps of content you have.  
+> If Obsidian is taking a long time to start up try turning this off and running it manually every now and then.
+
+Description:
+> Whether to generate and/or update the maps of content on startup.
+
+Default value:
+> On
+
+> [!note]
+> The base results themselves are updated by Obsidian.  
+> On update only the queries and views are updated.
+
+### Update templates on generation
+
+> [!warning]
+> This is a destructive operation.  
+> Once a base has been updated you'll lose any customization you might've put on top of it.
+
+Description:
+> Whether to update the bases queries regardless of when they were created
+
+Default value:
+> On
+
+### Ignore extras during update
+
+Description:
+> Whether to update or ignore the queries for bases that do not map to any specific folder.  
+> On = Extras will be ignored
+> This was made with the intention to allow people to have custom bases beyond what this tool provides.  
+> See also [Remove extra bases](#remove-extra-bases)
+
+Default value:
+> On
+
+### Generate root map of content
+
+Description:
+> Whether to generate a special map of content that maps other bases in the map of content folder.  
+> This is intended to be the entry point for the maps of content themselves.
+
+Default value:
+> On
+
+### Root map of content name
+
+Description:
+> Name of the root map of content if generated.  
+> This is the name of the file, not the whole path.
+
+Default value:
+> root
+
+Example:  
+![root map of content name example with name root](docs/images/RootMapOfContentName.png)
+
+### Remove extra bases
+
+Description:
+> Whether to remove bases from the map of content folder that do not map to any folder in the vault.  
+> This was made with the intention to allow people to have custom bases beyond what this tool provides.  
+> For obvious reasons this precedes "Ignore extras during update"  
+> See also [ignore extras during update](#ignore-extras-during-update)
+
+Default Value:
+> On

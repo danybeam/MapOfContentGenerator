@@ -1,20 +1,20 @@
 import { Plugin, TAbstractFile, TFile, TFolder, Vault } from "obsidian";
 
-import { DEFAULT_SETTINGS, MapOfConceptGeneratorPluginSettings, MapOfConceptGeneratorPluginSettingTab } from "./settings";
+import { DEFAULT_SETTINGS, MapOfContentGeneratorPluginSettings, MapOfContentGeneratorPluginSettingTab } from "./settings";
 
-export default class MapOfConceptGeneratorPlugin extends Plugin {
-  settings: MapOfConceptGeneratorPluginSettings = {
-    MapOfConceptDirectory: "",
-    MapOfConceptTemplate: "",
+export default class MapOfContentGeneratorPlugin extends Plugin {
+  settings: MapOfContentGeneratorPluginSettings = {
+    MapOfContentDirectory: "",
+    MapOfContentTemplate: "",
     ExcludeAllBases: false,
     ExcludeSelf: false,
     DeleteEmptyFoldersOnGeneration: false,
     GenerateOnStartup: false,
     RootMapTemplate: "",
     UpdateTemplatesOnGeneration: false,
-    GenerateRootMapOfConcept: false,
+    GenerateRootMapOfContent: false,
     RemoveExtraBases: false,
-    RootMapOfConceptName: "",
+    RootMapOfContentName: "",
     IgnoreExtrasDuringUpdate: false,
     AddRibbonButton: false
   };
@@ -25,7 +25,7 @@ export default class MapOfConceptGeneratorPlugin extends Plugin {
     if (this.settings.AddRibbonButton) {
       this.addRibbonIcon('table-of-contents', 'Generate maps of concept', async () => await this.GenerateMapsOfConcept());
     }
-    this.addSettingTab(new MapOfConceptGeneratorPluginSettingTab(this.app, this));
+    this.addSettingTab(new MapOfContentGeneratorPluginSettingTab(this.app, this));
 
     if (this.settings.GenerateOnStartup) {
       await this.GenerateMapsOfConcept();
@@ -36,7 +36,7 @@ export default class MapOfConceptGeneratorPlugin extends Plugin {
   }
 
   async loadSettings() {
-    this.settings = Object.assign({}, DEFAULT_SETTINGS, await this.loadData() as Partial<MapOfConceptGeneratorPluginSettings>);
+    this.settings = Object.assign({}, DEFAULT_SETTINGS, await this.loadData() as Partial<MapOfContentGeneratorPluginSettings>);
   }
 
   async saveSettings() {
@@ -48,10 +48,10 @@ export default class MapOfConceptGeneratorPlugin extends Plugin {
   }
 }
 
-async function GenerateMapsOfConcept(vault: Vault, settings: MapOfConceptGeneratorPluginSettings) {
-  let pendingFolders = [vault.getFolderByPath(settings.MapOfConceptDirectory)]
+async function GenerateMapsOfConcept(vault: Vault, settings: MapOfContentGeneratorPluginSettings) {
+  let pendingFolders = [vault.getFolderByPath(settings.MapOfContentDirectory)]
 
-  let MissingFolders: string[] = vault.getAllFolders().filter(val => !val.path.startsWith(settings.MapOfConceptDirectory)).map(val => val.path);
+  let MissingFolders: string[] = vault.getAllFolders().filter(val => !val.path.startsWith(settings.MapOfContentDirectory)).map(val => val.path);
   let GeneratedFolders: string[] = [];
   let ExtraFolders: string[] = [];
 
@@ -69,7 +69,7 @@ async function GenerateMapsOfConcept(vault: Vault, settings: MapOfConceptGenerat
       if (!(child instanceof TFile)) continue;
       if (child.extension != "base") continue;
 
-      let childPath = child.path.slice(settings.MapOfConceptDirectory.length + 1, -5);
+      let childPath = child.path.slice(settings.MapOfContentDirectory.length + 1, -5);
       let indexOfChild = MissingFolders.indexOf(childPath);
 
       if (indexOfChild == -1) {
@@ -111,25 +111,25 @@ async function GenerateMapsOfConcept(vault: Vault, settings: MapOfConceptGenerat
   }
 
   // Replace settings
-  let baseTemplate = settings.MapOfConceptTemplate.replace("$1", replaceText);
+  let baseTemplate = settings.MapOfContentTemplate.replace("$1", replaceText);
 
   for (let folder of MissingFolders) {
     let splitFolderbase = folder.split('/');
     splitFolderbase.pop();
-    let newFolder = [settings.MapOfConceptDirectory, ...splitFolderbase].join('/');
+    let newFolder = [settings.MapOfContentDirectory, ...splitFolderbase].join('/');
 
     if (vault.getAbstractFileByPath(newFolder) == null) {
       await vault.createFolder(newFolder);
     }
 
-    let basePath = settings.MapOfConceptDirectory + '/' + folder + '.base';
+    let basePath = settings.MapOfContentDirectory + '/' + folder + '.base';
     if (vault.getAbstractFileByPath(basePath) == null) {
       await vault.create(basePath, baseTemplate);
     }
   }
 
-  if (settings.GenerateRootMapOfConcept) {
-    let basePath = settings.MapOfConceptDirectory + "/" + settings.RootMapOfConceptName + ".base";
+  if (settings.GenerateRootMapOfContent) {
+    let basePath = settings.MapOfContentDirectory + "/" + settings.RootMapOfContentName + ".base";
     if (vault.getAbstractFileByPath(basePath) == null) {
       await vault.create(basePath, settings.RootMapTemplate);
     }
@@ -138,11 +138,11 @@ async function GenerateMapsOfConcept(vault: Vault, settings: MapOfConceptGenerat
   if (settings.UpdateTemplatesOnGeneration) {
 
     let pendingUpdates: TAbstractFile[] = vault.getFiles()
-      .filter(val => val.path.startsWith(settings.MapOfConceptDirectory))
+      .filter(val => val.path.startsWith(settings.MapOfContentDirectory))
       .filter(val => val.extension == "base");
 
     for (let file of pendingUpdates) {
-      if (file.parent?.path == settings.MapOfConceptDirectory && file.name == settings.RootMapOfConceptName + ".base") {
+      if (file.parent?.path == settings.MapOfContentDirectory && file.name == settings.RootMapOfContentName + ".base") {
         await vault.modify(file as TFile, settings.RootMapTemplate);
         continue;
       }
@@ -159,7 +159,7 @@ async function GenerateMapsOfConcept(vault: Vault, settings: MapOfConceptGenerat
 
   // Delete empty folders recursively
   if (settings.DeleteEmptyFoldersOnGeneration) {
-    await DeleteEmptyFoldersRecursively(vault, settings.MapOfConceptDirectory);
+    await DeleteEmptyFoldersRecursively(vault, settings.MapOfContentDirectory);
   }
 }
 
