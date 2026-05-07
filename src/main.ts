@@ -1,4 +1,4 @@
-import { ListedFiles, Plugin, TAbstractFile, TFile, TFolder, Vault } from "obsidian";
+import { Plugin, TAbstractFile, TFile, TFolder, Vault } from "obsidian";
 
 import { DEFAULT_SETTINGS, MapOfConceptGeneratorPluginSettings, MapOfConceptGeneratorPluginSettingTab } from "./settings";
 
@@ -9,13 +9,22 @@ export default class MapOfConceptGeneratorPlugin extends Plugin {
     ExcludeAllBases: false,
     ExcludeSelf: false,
     DeleteEmptyFoldersOnGeneration: false,
-    GenerateOnStartup: false
+    GenerateOnStartup: false,
+    RootMapTemplate: "",
+    UpdateTemplatesOnGeneration: false,
+    GenerateRootMapOfConcept: false,
+    RemoveExtraBases: false,
+    RootMapOfConceptName: "",
+    IgnoreExtrasDuringUpdate: false,
+    AddRibbonButton: false
   };
 
   async onload() {
     await this.loadSettings();
 
-    this.addRibbonIcon('dice', 'foo', async () => await this.GenerateMapsOfConcept());
+    if (this.settings.AddRibbonButton) {
+      this.addRibbonIcon('table-of-contents', 'Generate maps of concept', async () => await this.GenerateMapsOfConcept());
+    }
     this.addSettingTab(new MapOfConceptGeneratorPluginSettingTab(this.app, this));
 
     if (this.settings.GenerateOnStartup) {
@@ -74,11 +83,13 @@ async function GenerateMapsOfConcept(vault: Vault, settings: MapOfConceptGenerat
   }
 
 
-  // Delete any bases that do not match to folders anymore
-  for (let extra of ExtraFolders) {
-    let abstractFile = vault.getAbstractFileByPath(extra);
-    if (abstractFile != null) {
-      await vault.delete(abstractFile);
+  if (settings.RemoveExtraBases) {
+    // Delete any bases that do not match to folders anymore
+    for (let extra of ExtraFolders) {
+      let abstractFile = vault.getAbstractFileByPath(extra);
+      if (abstractFile != null) {
+        await vault.delete(abstractFile);
+      }
     }
   }
 
@@ -117,12 +128,33 @@ async function GenerateMapsOfConcept(vault: Vault, settings: MapOfConceptGenerat
     }
   }
 
-  let pendingUpdates: TAbstractFile[] = vault.getFiles()
-    .filter(val => val.path.startsWith(settings.MapOfConceptDirectory))
-    .filter(val => val.extension == "base");
+  if (settings.GenerateRootMapOfConcept) {
+    let basePath = settings.MapOfConceptDirectory + "/" + settings.RootMapOfConceptName + ".base";
+    if (vault.getAbstractFileByPath(basePath) == null) {
+      await vault.create(basePath, settings.RootMapTemplate);
+    }
+  }
 
-  for (let file of pendingUpdates) {
-    await vault.modify(file as TFile, baseTemplate);
+  if (settings.UpdateTemplatesOnGeneration) {
+
+    let pendingUpdates: TAbstractFile[] = vault.getFiles()
+      .filter(val => val.path.startsWith(settings.MapOfConceptDirectory))
+      .filter(val => val.extension == "base");
+
+    for (let file of pendingUpdates) {
+      if (file.parent?.path == settings.MapOfConceptDirectory && file.name == settings.RootMapOfConceptName + ".base") {
+        await vault.modify(file as TFile, settings.RootMapTemplate);
+        continue;
+      }
+
+      // This needs to be second so that the root does not get ignored
+      // If we're here we know we want the updates but the root will be marked as extra all of the time
+      if (settings.IgnoreExtrasDuringUpdate && ExtraFolders.contains(file.path)) {
+        continue;
+      }
+
+      await vault.modify(file as TFile, baseTemplate);
+    }
   }
 
   // Delete empty folders recursively
