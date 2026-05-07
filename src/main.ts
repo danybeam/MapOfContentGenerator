@@ -1,4 +1,4 @@
-import { Plugin, TAbstractFile, TFile, TFolder, Vault } from "obsidian";
+import { FileManager, Plugin, TAbstractFile, TFile, TFolder, Vault } from "obsidian";
 
 import { DEFAULT_SETTINGS, MapOfContentGeneratorPluginSettings, MapOfContentGeneratorPluginSettingTab } from "./settings.ts";
 
@@ -19,6 +19,8 @@ export default class MapOfContentGeneratorPlugin extends Plugin {
     AddRibbonButton: false
   };
 
+  fileManager: FileManager | null = null;
+
   async onload() {
     await this.loadSettings();
 
@@ -26,6 +28,7 @@ export default class MapOfContentGeneratorPlugin extends Plugin {
       this.addRibbonIcon('table-of-contents', 'Generate maps of concept', async () => await this.GenerateMapsOfConcept());
     }
     this.addSettingTab(new MapOfContentGeneratorPluginSettingTab(this.app, this));
+    this.fileManager = this.app.fileManager;
 
     if (this.settings.GenerateOnStartup) {
       await this.GenerateMapsOfConcept();
@@ -44,11 +47,16 @@ export default class MapOfContentGeneratorPlugin extends Plugin {
   }
 
   async GenerateMapsOfConcept() {
-    await GenerateMapsOfConcept(this.app.vault, this.settings)
+    await GenerateMapsOfConcept(this.app.vault, this.settings, this.fileManager);
   }
 }
 
-async function GenerateMapsOfConcept(vault: Vault, settings: MapOfContentGeneratorPluginSettings) {
+async function GenerateMapsOfConcept(vault: Vault, settings: MapOfContentGeneratorPluginSettings, fileManager: FileManager | null) {
+
+  if (fileManager == null) {
+    return;
+  }
+
   let pendingFolders = [vault.getFolderByPath(settings.MapOfContentDirectory)]
 
   let MissingFolders: string[] = vault.getAllFolders().filter(val => !val.path.startsWith(settings.MapOfContentDirectory)).map(val => val.path);
@@ -88,7 +96,8 @@ async function GenerateMapsOfConcept(vault: Vault, settings: MapOfContentGenerat
     for (let extra of ExtraFolders) {
       let abstractFile = vault.getAbstractFileByPath(extra);
       if (abstractFile != null) {
-        await vault.delete(abstractFile);
+
+        await fileManager.trashFile(abstractFile);
       }
     }
   }
@@ -142,8 +151,8 @@ async function GenerateMapsOfConcept(vault: Vault, settings: MapOfContentGenerat
       .filter(val => val.extension == "base");
 
     for (let file of pendingUpdates) {
-      if (file.parent?.path == settings.MapOfContentDirectory && file.name == settings.RootMapOfContentName + ".base") {
-        await vault.modify(file as TFile, settings.RootMapTemplate);
+      if (file.parent?.path == settings.MapOfContentDirectory && file.name == settings.RootMapOfContentName + ".base" && file instanceof TFile) {
+        await vault.modify(file, settings.RootMapTemplate);
         continue;
       }
 
@@ -153,18 +162,21 @@ async function GenerateMapsOfConcept(vault: Vault, settings: MapOfContentGenerat
         continue;
       }
 
-      await vault.modify(file as TFile, baseTemplate);
+      if (file instanceof TFile) {
+        await vault.modify(file, baseTemplate);
+      }
     }
   }
 
   // Delete empty folders recursively
   if (settings.DeleteEmptyFoldersOnGeneration) {
-    await DeleteEmptyFoldersRecursively(vault, settings.MapOfContentDirectory);
+    await DeleteEmptyFoldersRecursively(vault, fileManager, settings.MapOfContentDirectory);
   }
 }
 
-async function DeleteEmptyFoldersRecursively(vault: Vault, root: string | null): Promise<boolean> {
+async function DeleteEmptyFoldersRecursively(vault: Vault, fileManager: FileManager | null, root: string | null): Promise<boolean> {
   if (root == null) return true;
+  if (fileManager == null) return false;
 
   let abstractFile = vault.getAbstractFileByPath(root);
   if (abstractFile instanceof TFile) return false;
@@ -174,12 +186,12 @@ async function DeleteEmptyFoldersRecursively(vault: Vault, root: string | null):
   let childrenPaths = abstractFile.children.map(val => val.path);
 
   for (let child of childrenPaths) {
-    let result = await DeleteEmptyFoldersRecursively(vault, child);
+    let result = await DeleteEmptyFoldersRecursively(vault, fileManager, child);
     canDelete = result && canDelete;
   }
 
   if (canDelete) {
-    await vault.delete(abstractFile);
+    await fileManager.trashFile(abstractFile);
   }
 
   return canDelete;

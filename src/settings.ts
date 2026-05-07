@@ -78,7 +78,7 @@ export class MapOfContentGeneratorPluginSettingTab extends PluginSettingTab {
     const { containerEl } = this;
 
     containerEl.empty();
-    
+
     new Setting(containerEl)
       .setName('Enable ribbon button')
       .setDesc('Whether to show the ribbon button (needs restart)')
@@ -87,7 +87,7 @@ export class MapOfContentGeneratorPluginSettingTab extends PluginSettingTab {
           .setValue(this.plugin.settings.AddRibbonButton)
           .onChange(async (value) => {
             this.plugin.settings.AddRibbonButton = value;
-            this.plugin.saveSettings();
+            await this.plugin.saveSettings();
           })
       });
 
@@ -136,7 +136,7 @@ export class MapOfContentGeneratorPluginSettingTab extends PluginSettingTab {
           .setValue(this.plugin.settings.ExcludeAllBases)
           .onChange(async (value) => {
             this.plugin.settings.ExcludeAllBases = value;
-            this.plugin.saveSettings();
+            await this.plugin.saveSettings();
           })
       });
 
@@ -148,19 +148,19 @@ export class MapOfContentGeneratorPluginSettingTab extends PluginSettingTab {
           .setValue(this.plugin.settings.ExcludeSelf)
           .onChange(async (value) => {
             this.plugin.settings.ExcludeSelf = value;
-            this.plugin.saveSettings();
+             await this.plugin.saveSettings();
           })
       });
 
     new Setting(containerEl)
       .setName('Delete empty folders after generation')
-      .setDesc('This only affects folders under the base map of contents folder but as of right now it could delete the map of content folder itself\nWARNING: THIS CAN AND WILL DELETE YOUR MAP OF content FOLDER IF IT IS EMPTY AFTER CLEANING THE EXTRAS')
+      .setDesc("This only affects folders under the base map of contents folder but as of right now it could delete the map of content folder itself.")
       .addToggle(cb => {
         cb
           .setValue(this.plugin.settings.DeleteEmptyFoldersOnGeneration)
           .onChange(async (value) => {
             this.plugin.settings.DeleteEmptyFoldersOnGeneration = value;
-            this.plugin.saveSettings();
+            await this.plugin.saveSettings();
           })
       });
 
@@ -172,51 +172,51 @@ export class MapOfContentGeneratorPluginSettingTab extends PluginSettingTab {
           .setValue(this.plugin.settings.GenerateOnStartup)
           .onChange(async (value) => {
             this.plugin.settings.GenerateOnStartup = value;
-            this.plugin.saveSettings();
+            await this.plugin.saveSettings();
           })
       });
 
     new Setting(containerEl)
       .setName('Update templates on generation')
-      .setDesc("Whether to update the map of contents when they're generated\nWARNING: THIS IS A DESTRUCTIVE OPERATION AND IT WILL MODIFY ANY CUSTOM SETTINGS YOU HAVE ON YOUR BASES")
+      .setDesc("Whether to update the map of contents when they're generated.")
       .addToggle(cb => {
         cb
           .setValue(this.plugin.settings.UpdateTemplatesOnGeneration)
           .onChange(async (value) => {
             this.plugin.settings.UpdateTemplatesOnGeneration = value;
-            this.plugin.saveSettings();
+            await this.plugin.saveSettings();
           })
       });
 
     new Setting(containerEl)
       .setName('Ignore extras during update')
-      .setDesc("Whether to update the bases that do not map to a folder in the vault\nWARNING: THIS IS A DESTRUCTIVE OPERATION AND IT WILL MODIFY ANY CUSTOM SETTINGS YOU HAVE ON YOUR BASES")
+      .setDesc("Whether to update the bases that do not map to a folder in the vault.")
       .addToggle(cb => {
         cb
           .setValue(this.plugin.settings.IgnoreExtrasDuringUpdate)
           .onChange(async (value) => {
             this.plugin.settings.IgnoreExtrasDuringUpdate = value;
-            this.plugin.saveSettings();
+            await this.plugin.saveSettings();
           })
       });
 
     new Setting(containerEl)
-      .setName('Generate root Map of Content')
+      .setName('Generate root map of content')
       .setDesc("Whether to make a special map of content that links to the other maps of contents")
       .addToggle(cb => {
         cb
           .setValue(this.plugin.settings.GenerateRootMapOfContent)
           .onChange(async (value) => {
             this.plugin.settings.GenerateRootMapOfContent = value;
-            this.plugin.saveSettings();
+            await this.plugin.saveSettings();
           })
       });
 
-       new Setting(containerEl)
+    new Setting(containerEl)
       .setName('Root map of content name')
       .setDesc('Name of the file to be used as root (if applicable)')
       .addText(text => text
-        .setPlaceholder('root')
+        .setPlaceholder('Root map name')
         .setValue(this.plugin.settings.RootMapOfContentName)
         .onChange(async (value) => {
           this.plugin.settings.RootMapOfContentName = value;
@@ -227,13 +227,13 @@ export class MapOfContentGeneratorPluginSettingTab extends PluginSettingTab {
 
     new Setting(containerEl)
       .setName('Remove extra bases')
-      .setDesc("Whether to remove bases in the map of content folder that do not match to other folders.\nWARNING: THIS IS A DESTRUCTIVE OPERATION.")
+      .setDesc("Whether to remove bases in the map of content folder that do not match to other folders.")
       .addToggle(cb => {
         cb
           .setValue(this.plugin.settings.RemoveExtraBases)
           .onChange(async (value) => {
             this.plugin.settings.RemoveExtraBases = value;
-            this.plugin.saveSettings();
+            await this.plugin.saveSettings();
           })
       });
   }
